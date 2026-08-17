@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { MongooseExceptionFilter } from './common/filters/mongoose-exception.filter';
+import { setupSwagger } from './common/swagger/setup-swagger';
 
 /**
  * FRONTEND_URL holds a comma-separated allow-list. Requests with no Origin
@@ -60,21 +60,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new MongooseExceptionFilter());
 
-  const swagger = new DocumentBuilder()
-    .setTitle('SecureNotes API')
-    .setDescription(
-      'Role-based note taking. Every response is wrapped as { data }, and ' +
-        'list endpoints add { meta } with page, limit, total and totalPages.',
-    )
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
-  SwaggerModule.setup(
-    'api/docs',
-    app,
-    SwaggerModule.createDocument(app, swagger),
-    { swaggerOptions: { persistAuthorization: true } },
-  );
+  setupSwagger(app);
 
   const port = Number(
     process.env.PORT ?? config.get<string>('BACKEND_PORT') ?? 3001,

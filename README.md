@@ -311,6 +311,29 @@ Two deliberate choices:
 
 ## API reference
 
+### Interactive docs
+
+**Swagger UI at `/api/docs`** is the fastest way to explore the API: log in via
+`POST /api/auth/login`, click **Authorize**, paste the token, and every
+endpoint is callable from the browser. Authorisation persists across reloads.
+
+The OpenAPI document is generated from the code, so it cannot drift from the
+implementation, and it documents the whole contract rather than just the happy
+path:
+
+- **Response envelopes are in the schema.** `{ data: Model }` for a single
+  item, `{ data: Model[], meta: PaginationMeta }` for lists — not the bare
+  model, which is what the global interceptor actually returns.
+- **Every failure is listed per endpoint** — `400`, `401`, `403`, `404`, `409`,
+  `429` — each with a description of *why* it happens, not just its name.
+- **Response entities are explicit** (`UserEntity`, `NoteEntity`,
+  `PostWithAuthorEntity`, …), so the schema shows exactly what comes back —
+  including the absence of `password`.
+- Raw OpenAPI JSON is at **`/api/docs-json`**, importable straight into Postman
+  or Insomnia.
+
+### Contract
+
 Every response is wrapped as `{ "data": … }`. List endpoints add `meta`:
 
 ```json
