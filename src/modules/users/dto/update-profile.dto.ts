@@ -1,7 +1,5 @@
 import {
   IsArray,
-  IsEmail,
-  IsEnum,
   IsOptional,
   IsString,
   MaxLength,
@@ -9,30 +7,18 @@ import {
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateUserDto {
+/**
+ * What a user is allowed to change about *themselves*. Role and password are
+ * intentionally absent — privilege escalation is impossible by construction
+ * rather than by a runtime check.
+ */
+export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(80)
   name?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @ApiPropertyOptional({ minLength: 8 })
-  @IsOptional()
-  @IsString()
-  @MinLength(8)
-  @MaxLength(128)
-  password?: string;
-
-  @ApiPropertyOptional({ enum: ['user', 'admin'] })
-  @IsOptional()
-  @IsEnum(['user', 'admin'])
-  role?: string;
 
   @ApiPropertyOptional({ example: ['chess', 'reading'] })
   @IsOptional()

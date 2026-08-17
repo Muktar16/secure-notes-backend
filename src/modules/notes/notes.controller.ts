@@ -7,54 +7,62 @@ import {
   Body,
   Param,
   Query,
-  Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NotesService } from './notes.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { ParseObjectIdPipe } from '../../common/pipes/parse-objectid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/strategies/jwt.strategy';
 
+@ApiTags('notes')
+@ApiBearerAuth()
 @Controller('notes')
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
   @Post()
-  create(@CurrentUser() user: any, @Body() dto: CreateNoteDto) {
-    return this.notesService.create(user.userId, dto);
+  @ApiOperation({ summary: 'Create a note owned by you' })
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateNoteDto) {
+    return this.notesService.create(user, dto);
   }
 
   @Get()
-  findAll(
-    @CurrentUser() user: any,
-    @Query() query: PaginationQueryDto,
-  ) {
-    return this.notesService.findAll(user.userId, user.role, query.page, query.limit);
+  @ApiOperation({ summary: 'Your notes — or everyone\'s, if you are an admin' })
+  findAll(@CurrentUser() user: AuthUser, @Query() query: PaginationQueryDto) {
+    return this.notesService.findAll(user, query.page, query.limit);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Fetch one of your notes (admins: any note)' })
   findOne(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseObjectIdPipe) id: string,
   ) {
-    return this.notesService.findById(id, user.userId, user.role);
+    return this.notesService.findById(id, user);
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update one of your notes (admins: any note)' })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateNoteDto,
   ) {
-    return this.notesService.update(id, user.userId, user.role, dto);
+    return this.notesService.update(id, user, dto);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete one of your notes (admins: any note)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseObjectIdPipe) id: string,
   ) {
-    return this.notesService.remove(id, user.userId, user.role);
+    return this.notesService.remove(id, user);
   }
 }

@@ -1,14 +1,25 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { RegisterDto } from './dto/register.dto';
+
+export const BCRYPT_ROUNDS = 12;
+
+// Comparing against a throwaway hash when the email is unknown keeps the
+// response time of "no such user" and "wrong password" indistinguishable,
+// so login cannot be used to enumerate registered emails.
+const DUMMY_HASH = bcrypt.hashSync('unknown-user-placeholder', BCRYPT_ROUNDS);
+
+export interface PublicUser {
+  _id: unknown;
+  name: string;
+  email: string;
+  role: string;
+  interests: string[];
+}
 
 @Injectable()
 export class AuthService {
@@ -17,44 +28,62 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string) {
-    const user = await this.userModel.findOne({ email });
-    if (!user) return null;
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<PublicUser | null> {
+    const user = await this.userModel
+      .findOne({ email: email.toLowerCase() })
+      .select('+password')
+      .lean();
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return null;
+    const isMatch = await bcrypt.compare(
+      password,
+      user?.password ?? DUMMY_HASH,
+    );
+    if (!user || !isMatch) return null;
 
-    const { password: _pw, ...result } = user.toObject();
-    return result;
+    const { password: _hash, ...safe } = user;
+    return safe as PublicUser;
   }
 
-  async login(user: any) {
-    const payload = { sub: user._id, email: user.email, role: user.role };
-    const { password: _pw, ...userInfo } = user;
+  login(user: PublicUser) {
     return {
-      access_token: this.jwtService.sign(payload),
-      user: userInfo,
+      access_token: this.signToken(user),
+      user,
     };
   }
 
   async register(dto: RegisterDto) {
-    const existing = await this.userModel.findOne({ email: dto.email });
-    if (existing) {
-      throw new ConflictException('Email already registered');
-    }
-
-    const hashed = await bcrypt.hash(dto.password, 12);
-    const user = await this.userModel.create({
+    // No pre-flight "does this email exist" read: the unique index on
+    // users.email is the source of truth, and a duplicate surfaces as a 409
+    // via MongooseExceptionFilter. This closes the check-then-act race where
+    // two simultaneous registrations both pass the check.
+    const created = await this.userModel.create({
       name: dto.name,
       email: dto.email,
-      password: hashed,
+      password: await bcrypt.hash(dto.password, BCRYPT_ROUNDS),
+      interests: dto.interests ?? [],
     });
 
-    const { password: _pw, ...result } = user.toObject();
-    const payload = { sub: user._id, email: user.email, role: user.role };
+    const user = created.toObject() as unknown as PublicUser;
     return {
-      access_token: this.jwtService.sign(payload),
-      user: result,
+      access_token: this.signToken(user),
+      user,
     };
+  }
+
+  async profile(userId: string): Promise<PublicUser> {
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) throw new NotFoundException('User not found');
+    return user as unknown as PublicUser;
+  }
+
+  private signToken(user: PublicUser) {
+    return this.jwtService.sign({
+      sub: user._id,
+      email: user.email,
+      role: user.role,
+    });
   }
 }
