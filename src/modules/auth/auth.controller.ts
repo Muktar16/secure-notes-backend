@@ -26,7 +26,7 @@ export class AuthController {
   @Public()
   // Credential endpoints get a far tighter budget than the global one so
   // that password guessing is not merely slow but rate-limited.
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('register')
   @ApiOperation({ summary: 'Create an account and receive a JWT' })
   register(@Body() dto: RegisterDto) {
@@ -34,7 +34,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(AuthGuard('local'))
   @Post('login')
   @HttpCode(HttpStatus.OK)

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: secure-notes-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /api/health
+    envVars:
+      # Set in the Render dashboard. Atlas must allow 0.0.0.0/0 under Network
+      # Access — free-tier Render services have no static outbound IP.
+      - key: MONGODB_URI
+        sync: false
+      # Comma-separated allow-list of browser origins, e.g.
+      # https://secure-notes.vercel.app
+      - key: FRONTEND_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRY
+        value: 24h

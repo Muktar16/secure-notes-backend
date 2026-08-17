@@ -1,1 +1,23 @@
-node_modules
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# environment — never commit real credentials
+.env
+.env.local
+.env.*.local
+
+# test output
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
