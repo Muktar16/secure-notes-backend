@@ -23,9 +23,13 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             mongoose_1.MongooseModule.forRootAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: (config) => ({
-                    uri: config.get('MONGODB_URI'),
-                }),
+                useFactory: (config) => {
+                    const uri = config.get('MONGODB_URI');
+                    if (!uri) {
+                        throw new Error('MONGODB_URI is not set');
+                    }
+                    return { uri, serverSelectionTimeoutMS: 10000 };
+                },
                 inject: [config_1.ConfigService],
             }),
             auth_module_1.AuthModule,

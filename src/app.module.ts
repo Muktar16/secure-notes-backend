@@ -11,9 +11,13 @@ import { PostsModule } from './modules/posts/posts.module';
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI'),
-      }),
+      useFactory: (config: ConfigService) => {
+        const uri = config.get<string>('MONGODB_URI');
+        if (!uri) {
+          throw new Error('MONGODB_URI is not set');
+        }
+        return { uri, serverSelectionTimeoutMS: 10000 };
+      },
       inject: [ConfigService],
     }),
     AuthModule,

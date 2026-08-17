@@ -28,7 +28,10 @@ async function bootstrap() {
   app.enableCors({ origin: frontendUrl, credentials: true });
 
   const port = process.env.PORT || configService.get<number>('BACKEND_PORT') || 3001;
-  await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`Backend listening on 0.0.0.0:${port}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start backend', err);
+  process.exit(1);
+});

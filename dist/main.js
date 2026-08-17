@@ -24,8 +24,11 @@ async function bootstrap() {
     app.useGlobalGuards(new jwt_auth_guard_1.JwtAuthGuard(app.get(core_2.Reflector)), new roles_guard_1.RolesGuard(app.get(core_2.Reflector)));
     app.enableCors({ origin: frontendUrl, credentials: true });
     const port = process.env.PORT || configService.get('BACKEND_PORT') || 3001;
-    await app.listen(port);
-    console.log(`Backend running on http://localhost:${port}`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`Backend listening on 0.0.0.0:${port}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+    console.error('Failed to start backend', err);
+    process.exit(1);
+});
 //# sourceMappingURL=main.js.map
